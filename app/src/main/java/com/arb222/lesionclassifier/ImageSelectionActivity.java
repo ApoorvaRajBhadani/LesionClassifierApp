@@ -34,7 +34,7 @@ public class ImageSelectionActivity extends AppCompatActivity {
 
     ImageView selectedImageImageView;
     Button selectImageButton;
-    TextView outputTextView;
+    TextView outputTextView, lesionTextView, probabTextView;
 
     Uri mImageUri;
     Bitmap mImageBitmap;
@@ -47,6 +47,8 @@ public class ImageSelectionActivity extends AppCompatActivity {
         selectedImageImageView = (ImageView) findViewById(R.id.imageView);
         selectImageButton = (Button) findViewById(R.id.select_image_button);
         outputTextView = (TextView) findViewById(R.id.output_textview);
+        lesionTextView = (TextView) findViewById(R.id.lesion_textview);
+        probabTextView = (TextView) findViewById(R.id.probab_textview);
 
         selectImageButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -70,7 +72,7 @@ public class ImageSelectionActivity extends AppCompatActivity {
             if (resultCode == RESULT_OK) {
                 mImageUri = result.getUri();
                 selectedImageImageView.setImageURI(mImageUri);
-               // mImageBitmap = result.getBitmap();
+                // mImageBitmap = result.getBitmap();
                 mImageBitmap = ((BitmapDrawable) selectedImageImageView.getDrawable()).getBitmap();
 
                 File filesDir = getApplicationContext().getCacheDir();
@@ -86,9 +88,8 @@ public class ImageSelectionActivity extends AppCompatActivity {
                     Log.e(getClass().getSimpleName(), "Error writing bitmap", e);
                 }
 
-                RequestBody requestBitmap = RequestBody.create(MediaType.parse("multipart/form-data"),imageFile);
-                MultipartBody.Part body = MultipartBody.Part.createFormData("image",imageFile.getName(),requestBitmap);
-
+                RequestBody requestBitmap = RequestBody.create(MediaType.parse("multipart/form-data"), imageFile);
+                MultipartBody.Part body = MultipartBody.Part.createFormData("image", imageFile.getName(), requestBitmap);
 
 
                 Retrofit retrofit = new Retrofit.Builder()
@@ -111,17 +112,49 @@ public class ImageSelectionActivity extends AppCompatActivity {
                         Output postResponse = response.body();
 
                         String content = "";
+                        String lesion = "Lesion Type : ";
                         content += "code: " + response.code() + "\n";
-                        content += "category: " + postResponse.getCategory() + "\n";
-                        content += "prediction: " + postResponse.getPrediction();
+                        //content += "category: " + postResponse.getCategory() + "\n";
+                        //content += "prediction: " + postResponse.getPrediction();
+                        switch (postResponse.getCategory()) {
+                            case 0:
+                                lesion += "Melanocytic nevi";
+                                break;
+                            case 1:
+                                lesion += "Melanoma";
+                                break;
+                            case 2:
+                                lesion += "Benign keratosis-like lesions";
+                                break;
+                            case 3:
+                                lesion += "Basal cell carcinoma";
+                                break;
+                            case 4:
+                                lesion += "Actinic keratoses";
+                                break;
+                            case 5:
+                                lesion += "Vascular lesions";
+                                break;
+                            case 6:
+                                lesion += "Dermatofibroma";
+                                break;
+                            default:
+                                lesion += "Non-carcinogenic";
+                                break;
 
-                        outputTextView.setText(content);
+                        }
+
+                        probabTextView.setText("Chances : "+ (int)(10000*postResponse.getPrediction())/100.0 + " %");
+                        lesionTextView.setText(lesion);
+                        //outputTextView.setText(content);
+
+
                     }
 
                     @Override
                     public void onFailure(Call<Output> call, Throwable t) {
                         outputTextView.setText(t.getMessage());
-                        Toast.makeText(ImageSelectionActivity.this,"Error",Toast.LENGTH_SHORT).show();
+                        Toast.makeText(ImageSelectionActivity.this, "Error", Toast.LENGTH_SHORT).show();
                     }
                 });
 
